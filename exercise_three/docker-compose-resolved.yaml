@@ -1,0 +1,131 @@
+name: exercise_three
+services:
+  book-service:
+    container_name: book-api
+    depends_on:
+      database:
+        condition: service_started
+        required: true
+      rabbitmq:
+        condition: service_started
+        required: true
+    environment:
+      POSTGRES_DB: library
+      POSTGRES_HOST: database
+      POSTGRES_PASSWORD: password
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: user
+      RABBITMQ_DEFAULT_PASSWORD: guest
+      RABBITMQ_DEFAULT_USER: guest
+    image: paarth123/bookservice:v1
+    networks:
+      library-network: null
+    ports:
+      - mode: ingress
+        target: 5006
+        published: "5006"
+        protocol: tcp
+  borrow-service:
+    container_name: borrow-service
+    depends_on:
+      database:
+        condition: service_started
+        required: true
+      rabbitmq:
+        condition: service_healthy
+        required: true
+    environment:
+      POSTGRES_DB: library
+      POSTGRES_HOST: database
+      POSTGRES_PASSWORD: password
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: user
+      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_PASSWORD: guest
+      RABBITMQ_DEFAULT_USER: guest
+    image: paarth123/borrowservice:v1
+    networks:
+      library-network: null
+    ports:
+      - mode: ingress
+        target: 7000
+        published: "7000"
+        protocol: tcp
+  database:
+    container_name: database
+    environment:
+      POSTGRES_DB: library
+      POSTGRES_HOST: database
+      POSTGRES_PASSWORD: password
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: user
+    image: postgres
+    networks:
+      library-network: null
+    ports:
+      - mode: ingress
+        target: 5432
+        published: "5432"
+        protocol: tcp
+    volumes:
+      - type: volume
+        source: db_data
+        target: /var/lib/postgresql/data
+        volume: {}
+  rabbitmq:
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_USER: guest
+    healthcheck:
+      test:
+        - CMD
+        - rabbitmqctl
+        - status
+      timeout: 5s
+      interval: 10s
+      retries: 5
+    image: rabbitmq:3.13-rc-management
+    networks:
+      library-network: null
+    ports:
+      - mode: ingress
+        target: 5672
+        published: "5672"
+        protocol: tcp
+      - mode: ingress
+        target: 15672
+        published: "15672"
+        protocol: tcp
+  user-service:
+    container_name: api
+    depends_on:
+      database:
+        condition: service_started
+        required: true
+      rabbitmq:
+        condition: service_healthy
+        required: true
+    environment:
+      POSTGRES_DB: library
+      POSTGRES_HOST: database
+      POSTGRES_PASSWORD: password
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: user
+      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_PASSWORD: guest
+      RABBITMQ_DEFAULT_USER: guest
+    image: paarth123/userservice:v1
+    networks:
+      library-network: null
+    ports:
+      - mode: ingress
+        target: 5002
+        published: "5002"
+        protocol: tcp
+networks:
+  library-network:
+    name: library-network
+volumes:
+  db_data:
+    name: exercise_three_db_data

@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  database:
+    image: postgres
+    container_name: database
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - library-network
+    env_file:
+      - .env  
+ 
+
+  user-service:
+    build: ./UserService
+    container_name: api   
+    depends_on:
+      - database
+    networks:
+      - library-network
+    ports:
+      - "5002:5002"
+    restart: unless-stopped
+    env_file:
+      - .env  
+    
+  book-service:
+    build: ./BookService
+    container_name: book-api 
+    depends_on:
+      - database
+    networks:
+      - library-network
+    ports:
+      - "5006:5006"
+    restart: unless-stopped
+    env_file:
+      - .env  
+
+networks:
+  library-network:
+    name: library-network
+
+volumes:
+  db_data:
